@@ -324,3 +324,278 @@ test: 테스트
 
 *Last updated: 2026-10-04*
 *이 문서는 대화 기반으로 작성되었으며, 개발 진행에 따라 계속 업데이트 필요*
+
+---
+
+## 11. 전체 개발 로드맵
+
+> 혼자 진행하는 토이 프로젝트 기준. 각 Phase는 순서대로 진행하되,
+> Phase 3 (프론트)는 Phase 2 백엔드 API가 어느 정도 완성된 후 시작 권장.
+
+---
+
+### Phase 0 — 프로젝트 세팅 ✅ 완료
+
+- [x] 서비스 브랜딩 (로고, 컬러, 타이포, 슬로건)
+- [x] 요구사항 & MVP 정의
+- [x] 와이어프레임 (6개 화면)
+- [x] 기술 스택 확정
+- [x] 모노레포 구조 생성 & GitHub 연결
+- [x] Spring Boot 프로젝트 초기화 (apps/api/)
+- [x] Neon PostgreSQL 연결
+
+---
+
+### Phase 1 — 백엔드 기반 구축 (DB & 인증)
+
+> 목표: API 서버가 뜨고, 회원가입/로그인이 되고, Postman으로 테스트 가능한 상태
+
+#### 1-1. DB 스키마 설계 완성 (진행 중)
+- [x] users 테이블
+- [ ] books 테이블
+- [ ] user_books 테이블 (독서 기록 & 진행률)
+- [ ] highlights 테이블
+- [ ] notes 테이블 (highlights에 종속)
+
+#### 1-2. JPA Entity 작성
+- [ ] `User.java`
+- [ ] `Book.java`
+- [ ] `UserBook.java`
+- [ ] `Highlight.java`
+- [ ] `Note.java`
+- [ ] 연관관계 매핑 (`@OneToMany`, `@ManyToOne`, `@ManyToMany`)
+
+#### 1-3. Repository 레이어
+- [ ] `UserRepository`
+- [ ] `BookRepository`
+- [ ] `UserBookRepository`
+- [ ] `HighlightRepository`
+- [ ] `NoteRepository`
+
+#### 1-4. 인증 API (Spring Security + JWT)
+- [ ] JWT 토큰 발급/검증 유틸 클래스
+- [ ] Spring Security 설정 (`SecurityConfig`)
+- [ ] `POST /api/auth/signup` — 회원가입
+- [ ] `POST /api/auth/login` — 로그인 (JWT 반환)
+- [ ] `POST /api/auth/logout`
+- [ ] JWT 인증 필터 (`JwtAuthenticationFilter`)
+- [ ] Postman으로 인증 플로우 테스트
+
+#### 1-5. 공통 설정
+- [ ] 전역 예외 처리 (`@RestControllerAdvice`)
+- [ ] 공통 응답 포맷 (`ApiResponse<T>`)
+- [ ] CORS 설정 (Next.js 로컬 개발용)
+
+---
+
+### Phase 2 — 백엔드 핵심 API
+
+> 목표: 책 조회, 하이라이트/메모 CRUD API 완성. Postman으로 전체 플로우 테스트 가능
+
+#### 2-1. 책 API
+- [ ] `GET /api/books` — 전체 책 목록
+- [ ] `GET /api/books/:id` — 책 상세
+- [ ] `GET /api/books/:id/epub` — EPUB 파일 URL 반환 (Cloudflare R2)
+- [ ] `POST /api/admin/books` — 책 등록 (관리자 전용)
+
+#### 2-2. 독서 기록 API
+- [ ] `POST /api/user-books` — 읽기 시작 (독서 기록 생성)
+- [ ] `GET /api/user-books` — 내가 읽는 책 목록
+- [ ] `PATCH /api/user-books/:id` — 진행률 업데이트 (현재 페이지)
+- [ ] `DELETE /api/user-books/:id` — 읽기 중단
+
+#### 2-3. 하이라이트 API
+- [ ] `POST /api/highlights` — 하이라이트 생성
+- [ ] `GET /api/highlights?bookId=` — 특정 책의 내 하이라이트 목록
+- [ ] `GET /api/highlights/me` — 전체 내 하이라이트 (모아보기)
+- [ ] `DELETE /api/highlights/:id` — 하이라이트 삭제
+
+#### 2-4. 메모 API
+- [ ] `POST /api/notes` — 메모 작성 (highlightId 필수)
+- [ ] `GET /api/notes?highlightId=` — 특정 하이라이트의 메모 목록
+- [ ] `PATCH /api/notes/:id` — 메모 수정
+- [ ] `DELETE /api/notes/:id` — 메모 삭제
+
+#### 2-5. 공유독서 API
+- [ ] `GET /api/books/:id/shared-highlights` — 해당 책의 전체 유저 하이라이트 (공개)
+- [ ] `GET /api/books/:id/readers` — 현재 이 책을 읽는 유저 목록
+
+#### 2-6. Cloudflare R2 연동
+- [ ] R2 버킷 생성
+- [ ] EPUB 파일 업로드 설정
+- [ ] 파일 URL 반환 로직
+
+---
+
+### Phase 3 — 프론트엔드 구축
+
+> 목표: Next.js 앱이 뜨고, 백엔드 API와 연동되어 실제로 쓸 수 있는 상태
+
+#### 3-1. Next.js 초기 세팅
+- [ ] `apps/web/` — Next.js 15 프로젝트 초기화
+- [ ] Tailwind CSS 설정 & 브랜드 토큰 변수화
+- [ ] 폴더 구조 설정
+  ```
+  apps/web/
+  ├── app/                  # App Router
+  │   ├── (auth)/           # 로그인, 회원가입
+  │   ├── (main)/           # 홈, 책 상세, 뷰어
+  │   └── layout.tsx
+  ├── components/
+  │   ├── ui/               # 공통 UI (Button, Input, Card...)
+  │   └── features/         # 기능별 컴포넌트
+  ├── lib/
+  │   ├── api.ts            # API 호출 함수
+  │   └── auth.ts           # 인증 유틸
+  └── types/                # TypeScript 타입 정의
+  ```
+- [ ] API 클라이언트 설정 (fetch wrapper 또는 axios)
+- [ ] 환경변수 설정 (`.env.local`)
+
+#### 3-2. 인증 화면
+- [ ] 로그인 페이지 (`/login`)
+- [ ] 회원가입 페이지 (`/signup`)
+- [ ] JWT 토큰 저장 & 관리 (httpOnly cookie 권장)
+- [ ] 인증 상태 전역 관리
+- [ ] 미인증 접근 시 로그인 리다이렉트 (middleware.ts)
+
+#### 3-3. 홈 화면
+- [ ] 읽는 중인 책 목록 (`/home`)
+- [ ] 탐색 섹션 (전체 책 목록)
+- [ ] 공유독자 인디케이터 (몇 명이 읽는 중)
+- [ ] 진행률 바
+
+#### 3-4. 책 상세 화면
+- [ ] 책 정보 (`/books/:id`)
+- [ ] 읽기 시작 / 이어 읽기 버튼
+- [ ] 현재 이 책 읽는 독자 표시
+
+#### 3-5. 이북 뷰어 (핵심)
+- [ ] epub.js 설치 & 세팅
+- [ ] EPUB 렌더링 (`/reader/:bookId`)
+- [ ] 페이지 넘기기 (이전/다음)
+- [ ] 글씨 크기 조절
+- [ ] 텍스트 선택 → 컨텍스트 메뉴 (하이라이트 / 메모 추가)
+- [ ] 하이라이트 시각적 표시 (파란 배경)
+- [ ] 진행률 저장 (현재 페이지 → API 업데이트)
+- [ ] 우측 공유 메모 패널 UI
+
+#### 3-6. 하이라이트 모아보기
+- [ ] 내 전체 하이라이트 목록 (`/highlights`)
+- [ ] 책별 필터
+- [ ] 하이라이트 클릭 시 해당 페이지로 이동
+
+---
+
+### Phase 4 — 실시간 기능 (공유독서 핵심)
+
+> 목표: 같은 책을 읽는 유저의 메모가 실시간으로 보이는 상태
+
+#### 4-1. Supabase Realtime 설정
+- [ ] Supabase 프로젝트 생성 (Realtime 전용)
+- [ ] 채널 설계: `book:{bookId}` 단위 채널
+- [ ] 백엔드: 메모 저장 시 Realtime 이벤트 발행
+- [ ] 프론트: 채널 구독 & 실시간 메모 수신
+
+#### 4-2. 실시간 UI
+- [ ] 우측 패널 실시간 메모 스트림
+- [ ] "방금 누가 메모를 남겼어요" 알림 바
+- [ ] 현재 이 책 읽는 독자 실시간 카운트
+- [ ] 하이라이트 위 메모 수 배지 (`💬 4`) 실시간 업데이트
+
+---
+
+### Phase 5 — 배포
+
+> 목표: 실제 URL로 접근 가능한 서비스
+
+#### 5-1. 백엔드 배포 (Railway)
+- [ ] Railway 프로젝트 생성
+- [ ] GitHub 연동 (apps/api/ 경로 지정)
+- [ ] 환경변수 설정 (DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET 등)
+- [ ] 배포 확인 (Railway 제공 URL로 API 테스트)
+- [ ] 커스텀 도메인 연결 (선택)
+
+#### 5-2. 프론트엔드 배포 (Vercel)
+- [ ] Vercel 프로젝트 생성
+- [ ] GitHub 연동 (apps/web/ 경로 지정)
+- [ ] 환경변수 설정 (`NEXT_PUBLIC_API_URL` = Railway URL)
+- [ ] 배포 확인
+- [ ] 커스텀 도메인 연결 (pagefold.app 등)
+
+#### 5-3. 배포 후 확인
+- [ ] 전체 플로우 E2E 테스트 (회원가입 → 책 읽기 → 하이라이트 → 공유)
+- [ ] CORS 설정 확인 (Vercel 도메인 허용)
+- [ ] HTTPS 확인
+
+---
+
+### Phase 6 — MVP 이후 확장 (선택)
+
+> MVP 완성 후 여유가 생기면 순서대로 추가
+
+#### 6-1. 서평 & 별점
+- [ ] `reviews` 테이블 추가
+- [ ] 별점 & 서평 작성 API
+- [ ] 책 상세 페이지에 서평 섹션 추가
+
+#### 6-2. 책 검색
+- [ ] `GET /api/books/search?q=` API
+- [ ] PostgreSQL Full-Text Search 또는 LIKE 쿼리
+- [ ] 검색 결과 UI
+
+#### 6-3. 북클럽 / 커뮤니티
+- [ ] `clubs` 테이블 (그룹 독서 모임)
+- [ ] 멤버 초대 & 참여
+- [ ] 클럽 전용 공유독서 채널
+
+#### 6-4. 소셜 로그인
+- [ ] Google OAuth 연동 (Spring Security OAuth2)
+- [ ] 프론트 소셜 로그인 버튼
+
+#### 6-5. 모바일 앱
+- [ ] React Native 프로젝트 생성
+- [ ] 기존 Next.js 컴포넌트 로직 재활용
+- [ ] 앱스토어 배포
+
+---
+
+## 12. API 설계 원칙
+
+### REST 컨벤션
+```
+GET    /api/books          # 목록 조회
+GET    /api/books/:id      # 단건 조회
+POST   /api/books          # 생성
+PATCH  /api/books/:id      # 부분 수정
+DELETE /api/books/:id      # 삭제
+```
+
+### 공통 응답 포맷
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "ok"
+}
+```
+
+### 에러 응답 포맷
+```json
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "로그인이 필요합니다."
+  }
+}
+```
+
+### 인증
+- JWT Bearer Token 방식
+- `Authorization: Bearer {token}` 헤더
+- 토큰 만료: Access Token 1시간, Refresh Token 7일 (추후 구현)
+
+---
+
+*Last updated: 2026-10-04*
