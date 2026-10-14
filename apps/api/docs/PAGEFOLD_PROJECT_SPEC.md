@@ -160,6 +160,24 @@ users
 - deleted_at    TIMESTAMP               -- Soft Delete
 ```
 
+```agsl
+books
+- id              BIGINT PK (Auto Increment)
+- title           VARCHAR NOT NULL
+- author          VARCHAR NOT NULL
+- publisher       VARCHAR
+- published_year  INTEGER
+- isbn            VARCHAR UNIQUE       -- nullable (공개도메인 책은 없을 수 있음)
+- description     TEXT
+- cover_image_url VARCHAR              -- 표지 이미지 URL
+- epub_url        VARCHAR NOT NULL     -- Cloudflare R2 EPUB 파일 URL
+- language        VARCHAR DEFAULT 'ko' -- 언어 (공개도메인 책은 영문도 많으니)
+- created_at      TIMESTAMP NOT NULL
+- updated_at      TIMESTAMP NOT NULL
+- deleted_at      TIMESTAMP
+```
+> categories 테이블 추가 (장르)
+
 ### 나머지 테이블 (설계 진행 중)
 > books, user_books, highlights, notes 테이블은 스키마 설계 세션에서 계속 작업 중.
 > 아래 관계 기준으로 설계 예정:
