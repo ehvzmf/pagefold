@@ -147,39 +147,98 @@ pagefold/                    # 모노레포 (GitHub 레포 하나)
 4. `highlights` — 하이라이트 (책의 어느 위치, 어떤 텍스트)
 5. `notes` — 메모 (하이라이트에 종속)
 
-### users 테이블 (확정)
-```sql
+### users 테이블 
+```agsl
 users
-- id            BIGINT PK (Auto Increment)
-- email         VARCHAR UNIQUE NOT NULL
-- password_hash VARCHAR NOT NULL
-- user_name     VARCHAR NOT NULL        -- 닉네임 (화면 표시용)
-- profile_pic   VARCHAR                 -- 프로필 이미지 URL
-- created_at    TIMESTAMP NOT NULL
-- updated_at    TIMESTAMP NOT NULL
-- deleted_at    TIMESTAMP               -- Soft Delete
+- id              BIGINT PK (Auto Increment)
+- email           VARCHAR UNIQUE NOT NULL
+- password_hash   VARCHAR NOT NULL          -- 해시값 저장, 평문 금지
+- user_name       VARCHAR NOT NULL          -- 화면에 표시되는 닉네임
+- profile_pic     VARCHAR                   -- 프로필 이미지 URL
+- created_at      TIMESTAMP NOT NULL
+- updated_at      TIMESTAMP NOT NULL
+- deleted_at      TIMESTAMP                 -- NULL이면 활성 상태
 ```
 
+### books
 ```agsl
 books
 - id              BIGINT PK (Auto Increment)
+- category_id     BIGINT FK → categories.id -- nullable (미분류 허용)
 - title           VARCHAR NOT NULL
 - author          VARCHAR NOT NULL
 - publisher       VARCHAR
 - published_year  INTEGER
-- isbn            VARCHAR UNIQUE       -- nullable (공개도메인 책은 없을 수 있음)
+- isbn            VARCHAR UNIQUE            -- nullable (공개도메인 책은 없을 수 있음)
 - description     TEXT
-- cover_image_url VARCHAR              -- 표지 이미지 URL
-- epub_url        VARCHAR NOT NULL     -- Cloudflare R2 EPUB 파일 URL
-- language        VARCHAR DEFAULT 'ko' -- 언어 (공개도메인 책은 영문도 많으니)
+- cover_image_url VARCHAR                   -- 표지 이미지 URL
+- epub_url        VARCHAR NOT NULL          -- Cloudflare R2 EPUB 파일 URL
+- language        VARCHAR DEFAULT 'ko'      -- 언어 (공개도메인 책은 영문도 많으니)
 - created_at      TIMESTAMP NOT NULL
 - updated_at      TIMESTAMP NOT NULL
 - deleted_at      TIMESTAMP
 ```
-> categories 테이블 추가 (장르)
+
+### user_books
+> 유저별 독서 기록 & 진행률 (users N:M books 중간 테이블)
+```agsl
+user_books
+- id                BIGINT PK (Auto Increment)
+- user_id           BIGINT FK → users.id NOT NULL
+- book_id           BIGINT FK → books.id NOT NULL
+- last_cfi          TEXT                    -- 마지막으로 읽은 위치 (epub.js CFI)
+- progress_percent  NUMERIC(5,2)            -- 진행률 (0~100)
+- last_read_at      TIMESTAMP               -- 마지막으로 읽은 시각
+- finished_at       TIMESTAMP               -- 완독 시각 (NULL이면 읽는 중)
+- created_at        TIMESTAMP NOT NULL
+- updated_at        TIMESTAMP NOT NULL
+- deleted_at        TIMESTAMP
+
+UNIQUE (user_id, book_id)                   -- 같은 유저가 같은 책을 중복 등록 불가
+```
+
+### highlights
+> 하이라이트 (책의 어느 위치, 어떤 텍스트)
+```agsl
+highlights
+- id              BIGINT PK (Auto Increment)
+- user_id         BIGINT FK → users.id NOT NULL
+- book_id         BIGINT FK → books.id NOT NULL
+- cfi_range       TEXT NOT NULL             -- 선택 범위의 위치 (epub.js CFI)
+- selected_text   TEXT NOT NULL             -- 선택한 원문
+- color           VARCHAR DEFAULT 'yellow'  -- 형광펜 색상
+- is_public       BOOLEAN NOT NULL DEFAULT true  -- 공유 여부
+- created_at      TIMESTAMP NOT NULL
+- updated_at      TIMESTAMP NOT NULL
+- deleted_at      TIMESTAMP
+
+INDEX (book_id)                             -- 책별 하이라이트 조회용 (공유독서 핵심 쿼리)
+```
+
+### notes
+```agsl
+notes
+- id              BIGINT PK (Auto Increment)
+- highlight_id    BIGINT FK → highlights.id NOT NULL
+- user_id         BIGINT FK → users.id NOT NULL  -- 메모 작성자
+- content         TEXT NOT NULL
+- created_at      TIMESTAMP NOT NULL
+- updated_at      TIMESTAMP NOT NULL
+- deleted_at      TIMESTAMP
+
+INDEX (highlight_id)                        -- 하이라이트별 메모 조회용
+```
+
+### categories
+```agsl
+- id              BIGINT PK (Auto Increment)
+- name            VARCHAR UNIQUE NOT NULL   -- 장르명 (소설, 고전, SF 등)
+- created_at      TIMESTAMP NOT NULL
+- updated_at      TIMESTAMP NOT NULL
+- deleted_at      TIMESTAMP
+```
 
 ### 나머지 테이블 (설계 진행 중)
-> books, user_books, highlights, notes 테이블은 스키마 설계 세션에서 계속 작업 중.
 > 아래 관계 기준으로 설계 예정:
 > - users 1:N user_books N:1 books (유저가 여러 책, 책을 여러 유저가 읽음)
 > - highlights는 user_books 또는 books + user 복합 참조
